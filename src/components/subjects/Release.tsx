@@ -1,5 +1,5 @@
 import React from "react";
-import { NotificationSubject } from "./NotificationSubject";
+import { NotificationSubject } from "../Notification";
 
 export const Release: NotificationSubject = ({ notification }) => {
   const { subject: release } = notification;

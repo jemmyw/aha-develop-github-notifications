@@ -1,6 +1,7 @@
 import React from "react";
-import { NotificationSubject } from "./NotificationSubject";
 import { webLink } from "../../lib/webLink";
+import { Labels } from "../Labels";
+import { NotificationSubject } from "../Notification";
 
 function prUrlToNumber(url: string) {
   const parts = url.split("/");
@@ -8,8 +9,12 @@ function prUrlToNumber(url: string) {
   return `${owner}/${repo}#${number}`;
 }
 
-export const PullRequest: NotificationSubject = ({ notification }) => {
+export const PullRequest: NotificationSubject = ({
+  notification,
+  enhancements,
+}) => {
   const { subject: pullRequest } = notification;
+  const enhancedPr = enhancements?.pullRequest;
 
   return (
     <div>
@@ -19,6 +24,7 @@ export const PullRequest: NotificationSubject = ({ notification }) => {
       <div className="subtitle">
         <a href={webLink(pullRequest.url)}>{prUrlToNumber(pullRequest.url)}</a>
       </div>
+      {enhancedPr && <Labels labels={enhancedPr.labels.nodes} />}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { RestEndpointMethodTypes } from "@octokit/rest";
-import { atom, DefaultValue, selector } from "recoil";
-import { IDENTIFIER } from "../extension";
+import { atom, selector } from "recoil";
+import { listNotificationsOptions } from "./helpers/listNotifications";
 
 interface NotificationsState {
   lastModified: string | null;
@@ -12,6 +12,24 @@ type ArrayElement<ArrayType extends readonly unknown[]> =
 type GithubNotifications =
   RestEndpointMethodTypes["activity"]["listNotificationsForAuthenticatedUser"]["response"]["data"];
 export type GithubNotification = ArrayElement<GithubNotifications>;
+
+export const authTokenState = atom<string | null>({
+  key: "authToken",
+  default: null,
+});
+
+export const nextPollAtState = atom<number | null>({
+  key: "nextPollAt",
+  default: null,
+});
+
+export const optionsState = atom<listNotificationsOptions>({
+  key: "options",
+  default: {
+    onlyParticipating: true,
+    showRead: false,
+  },
+});
 
 export const notificationsState = atom<GithubNotification[]>({
   default: [],

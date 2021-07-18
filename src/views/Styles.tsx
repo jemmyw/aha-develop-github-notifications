@@ -22,8 +22,17 @@ export const Styles = () => {
 
     .notification {
       border-top: 1px solid white;
-      border-bottom: 1px solid var(--aha-gray-200);
+      border-bottom: 1px solid var(--aha-gray-400);
       background: var(--aha-gray-100);
+      padding: 5px;
+    }
+
+    .notification .title a {
+      color: inherit;
+    }
+
+    .notification.unread .title a {
+      font-weight: bold;
     }
     `}
     </style>

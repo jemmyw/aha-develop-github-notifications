@@ -1,11 +1,16 @@
 import { AuthProvider } from "@aha-app/aha-develop-react";
-import { Octokit } from "@octokit/rest";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { RecoilRoot, useRecoilState, useSetRecoilState } from "recoil";
 import { NotificationList } from "../components/NotificationList";
 import { IDENTIFIER } from "../extension";
 import { useGithubApi } from "../lib/useGithubApi";
-import { loadingState, notificationsState } from "../store/notifications";
+import {
+  authTokenState,
+  loadingState,
+  notificationsState,
+  optionsState,
+} from "../store/notifications";
+import { listNotifications } from "../store/helpers/listNotifications";
 import { PanelBar } from "./PanelBar";
 import { Styles } from "./Styles";
 
@@ -23,24 +28,45 @@ const NotificationsPanel: React.FC<Props> = ({
   onlyParticipating,
 }) => {
   const lastModified = useRef<string | null>(null);
+  const nextPollHandle = useRef<NodeJS.Timeout | null>(null);
   const [notifications, setNotifications] = useRecoilState(notificationsState);
   const setLoading = useSetRecoilState(loadingState);
+  const setNotificationListOptions = useSetRecoilState(optionsState);
+
+  useEffect(() => {
+    return () => {
+      if (nextPollHandle.current) clearTimeout(nextPollHandle.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    setNotificationListOptions({ showRead, onlyParticipating });
+  }, [showRead, onlyParticipating]);
 
   const { authed, error, fetchData } = useGithubApi(
     async (api) => {
+      if (nextPollHandle.current) clearTimeout(nextPollHandle.current);
       setLoading(true);
+      let pollSeconds = 60;
 
       try {
-        const response = await listNotifications(api, {
-          showRead,
-          onlyParticipating,
-          lastModified: lastModified.current,
-        });
+        const response = await listNotifications(
+          api,
+          {
+            showRead,
+            onlyParticipating,
+          },
+          lastModified.current
+        );
 
         setNotifications(response.data);
 
         if (response.headers["last-modified"]) {
           lastModified.current = response.headers["last-modified"];
+        }
+
+        if (response.headers["x-poll-interval"]) {
+          pollSeconds = Number(response.headers["x-poll-interval"]);
         }
       } catch (error) {
         if (error.status !== 304) {
@@ -48,8 +74,11 @@ const NotificationsPanel: React.FC<Props> = ({
         }
       }
 
+      nextPollHandle.current = setTimeout(
+        () => fetchData(),
+        pollSeconds * 1000
+      );
       setLoading(false);
-      return true;
     },
     [showRead, onlyParticipating]
   );
@@ -124,28 +153,3 @@ panel.on({ action: "settings" }, () => {
     },
   ];
 });
-
-async function listNotifications(
-  api: Octokit,
-  {
-    showRead,
-    onlyParticipating,
-    lastModified,
-  }: {
-    showRead: boolean;
-    onlyParticipating: boolean;
-    lastModified: string | null;
-  }
-) {
-  const headers = {};
-
-  if (lastModified) {
-    headers["If-Modified-Since"] = lastModified;
-  }
-
-  return await api.rest.activity.listNotificationsForAuthenticatedUser({
-    all: showRead,
-    participating: onlyParticipating,
-    headers,
-  });
-}

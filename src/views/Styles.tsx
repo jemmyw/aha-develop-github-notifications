@@ -30,6 +30,10 @@ export const Styles = () => {
           color: var(--aha-blue-400);
         }
 
+        .notification.fade {
+          opacity: 0.7;
+        }
+
         .notification .mark {
           font-size: 10px;
           cursor: pointer;

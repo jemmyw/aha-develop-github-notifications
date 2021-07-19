@@ -6,6 +6,7 @@ export interface PullRequestEnhancement {
   number: number;
   title: string;
   url: string;
+  state: "OPEN" | "CLOSED" | "MERGED";
   labels: {
     nodes: Label[];
   };
@@ -80,6 +81,7 @@ export async function listEnhancedPullRequests(
           number
           title
           url
+          state
           labels(first: 4) {
             nodes {
               name

@@ -67,8 +67,13 @@ export const Notification: NotificationSubject = ({
   const SubjectComponent = getSubjectComponent(notification.subject.type);
   const classNames = ["notification"];
 
-  const isRead = notification.unread ? markedRead : false;
-  classNames.push(isRead ? "read" : "unread");
+  if (notification.unread && markedRead) {
+    classNames.push("read fade");
+  } else if (notification.unread) {
+    classNames.push("unread");
+  } else {
+    classNames.push("read");
+  }
 
   return (
     <div className={classNames.join(" ")}>

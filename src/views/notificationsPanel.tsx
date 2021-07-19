@@ -1,21 +1,17 @@
 import { AuthProvider } from "@aha-app/aha-develop-react";
 import React, { useEffect, useMemo, useRef } from "react";
-import {
-  RecoilRoot,
-  useRecoilCallback,
-  useSetRecoilState,
-  waitForAll,
-} from "recoil";
+import { RecoilRoot, useRecoilCallback, waitForAll } from "recoil";
 import { NotificationList } from "../components/NotificationList";
 import { PanelBar } from "../components/PanelBar";
 import { IDENTIFIER } from "../extension";
 import { useGithubApi } from "../lib/useGithubApi";
 import { useIncrementPollId } from "../lib/useIncrementPollId";
+import { usePropSync } from "../lib/usePropSync";
 import { useRecoilCachedLoadble } from "../lib/useRecoilCachedLoadable";
+import { showLabelsState } from "../store/display";
 import { markAllRead } from "../store/helpers/markNotification";
 import {
   authTokenState,
-  lastModifiedSelector,
   nextPollAtSelector,
   notificationsSelector,
   optionsState,
@@ -29,15 +25,16 @@ const panel = aha.getPanel(IDENTIFIER, "notificationsPanel", {
 interface Props {
   showRead: boolean;
   onlyParticipating: boolean;
+  showLabels: boolean;
 }
 
 const NotificationsPanel: React.FC<Props> = ({
   showRead,
   onlyParticipating,
+  showLabels,
 }) => {
   const nextPollHandle = useRef<NodeJS.Timeout | null>(null);
   const incrementPollId = useIncrementPollId();
-  const setNotificationListOptions = useSetRecoilState(optionsState);
   const [[notifications, nextPollAt], notificationsState] =
     useRecoilCachedLoadble(
       waitForAll([notificationsSelector, nextPollAtSelector]),
@@ -62,9 +59,11 @@ const NotificationsPanel: React.FC<Props> = ({
     };
   }, [nextPollAt]);
 
-  useEffect(() => {
-    setNotificationListOptions({ showRead, onlyParticipating });
-  }, [showRead, onlyParticipating]);
+  usePropSync({ showRead, onlyParticipating }, optionsState, [
+    showRead,
+    onlyParticipating,
+  ]);
+  usePropSync(showLabels, showLabelsState, [showLabels]);
 
   const { authed, error, fetchData } = useGithubApi(async (api) => {
     return true;
@@ -72,7 +71,7 @@ const NotificationsPanel: React.FC<Props> = ({
 
   const list = useMemo(
     () => <NotificationList notifications={notifications || []} />,
-    [JSON.stringify(notifications)]
+    [JSON.stringify(notifications), showLabels]
   );
 
   const onMarkRead = useRecoilCallback(({ snapshot }) => async () => {
@@ -123,6 +122,7 @@ const isTrue = (val: unknown) =>
 panel.on("render", ({ props: { panel } }) => {
   const showRead = isTrue(panel.settings.showRead);
   const onlyParticipating = isTrue(panel.settings.onlyParticipating);
+  const showLabels = isTrue(panel.settings.showLabels);
 
   return (
     <>
@@ -132,6 +132,7 @@ panel.on("render", ({ props: { panel } }) => {
           <NotificationsPanel
             showRead={showRead}
             onlyParticipating={onlyParticipating}
+            showLabels={showLabels}
           />
         </RecoilRoot>
       </AuthProvider>
@@ -149,6 +150,11 @@ panel.on({ action: "settings" }, () => {
     {
       key: "onlyParticipating",
       title: "Only participating",
+      type: "Checkbox",
+    },
+    {
+      key: "showLabels",
+      title: "Show labels",
       type: "Checkbox",
     },
   ];

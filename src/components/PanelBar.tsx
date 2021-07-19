@@ -1,13 +1,15 @@
 import React from "react";
-import { useRecoilValue } from "recoil";
+import { useRecoilValue, useRecoilValueLoadable } from "recoil";
+import { useRecoilCachedLoadble } from "../lib/useRecoilCachedLoadable";
 import { loadingState, unreadCountSelector } from "../store/notifications";
 
 interface Props {
   onRefresh: () => void;
+  onMarkRead: () => void;
 }
 
-export const PanelBar: React.FC<Props> = ({ onRefresh }) => {
-  const unreadCount = useRecoilValue(unreadCountSelector);
+export const PanelBar: React.FC<Props> = ({ onRefresh, onMarkRead }) => {
+  const [unreadCount] = useRecoilCachedLoadble(unreadCountSelector, 0);
   const loading = useRecoilValue(loadingState);
 
   return (
@@ -24,7 +26,7 @@ export const PanelBar: React.FC<Props> = ({ onRefresh }) => {
           <aha-button type="unstyled" onClick={onRefresh} disabled={loading}>
             <aha-icon icon={`fa fa-sync ${loading ? "fa-spin" : ""}`} />
           </aha-button>
-          <aha-button type="unstyled">
+          <aha-button type="unstyled" onClick={onMarkRead}>
             <aha-icon icon="fa fa-eye" />
           </aha-button>
         </aha-flex>

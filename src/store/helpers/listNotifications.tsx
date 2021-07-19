@@ -12,13 +12,19 @@ export async function listNotifications(
 ) {
   const headers: Record<string, string> = {};
 
-  if (lastModified) {
-    headers["If-Modified-Since"] = lastModified;
-  }
+  headers["If-Modified-Since"] = lastModified || "";
 
   return await api.rest.activity.listNotificationsForAuthenticatedUser({
     all: showRead,
     participating: onlyParticipating,
     headers,
+    request: {
+      fetch: (url: string, options: any) => {
+        return fetch(url, {
+          ...options,
+          cache: "no-cache",
+        });
+      },
+    },
   });
 }

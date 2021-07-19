@@ -1,6 +1,5 @@
 import { Octokit } from "@octokit/rest";
 import gql from "gql-tag";
-import { prInfoFromIdentifier, pullRequestQuery } from "../enhance";
 
 export interface PullRequestEnhancement {
   id: number;
@@ -22,6 +21,23 @@ export interface Label {
   name: string;
   color: string;
 }
+
+const pullRequestQuery = (alias: string, idx: number) => {
+  return gql`
+    ${alias}: repository(owner: $owner_${idx}, name: $repo_${idx}) {
+      pullRequest(number: $number_${idx}) {
+        ...PullRequestInfo
+      }
+    }
+  `;
+};
+
+export const prInfoFromIdentifier = (id: string) => id.split("/");
+
+export const prIdentifierFromUrl = (url: string) => {
+  const parts = url.split("?")[0].split("/").slice(-4);
+  return [parts[0], parts[1], parts[3]].join("/");
+};
 
 export async function listEnhancedPullRequests(
   pullRequestInfo: string[],

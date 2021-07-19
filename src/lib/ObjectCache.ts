@@ -26,6 +26,11 @@ export class ObjectCache<T> {
     return this.cache[key] !== undefined;
   }
 
+  public remove(key: string): void {
+    delete this.cache[key];
+    delete this.cacheTimestamps[key];
+  }
+
   public clear(): void {
     this.cache = {};
     this.cacheTimestamps = {};

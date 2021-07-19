@@ -1,8 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
+import { useRecoilCallback } from "recoil";
 import { timeAgo } from "../lib/timeAgo";
-import { NotificationEnhancements } from "../store/enhance";
-import { GithubNotification } from "../store/notifications";
-import { UnknownReason, Comment } from "./reasons";
+import { useIncrementPollId } from "../lib/useIncrementPollId";
+import { GithubComment, NotificationEnhancements } from "../store/enhance";
+import { markNotificationRead } from "../store/helpers/markNotification";
+import { authTokenState, GithubNotification } from "../store/notifications";
+import { Avatar } from "./Avatar";
+import { Comment } from "./Comment";
 import { PullRequest, UnknownSubject } from "./subjects";
 
 export type NotificationSubject = React.FC<{
@@ -13,6 +17,8 @@ export type NotificationReason = React.FC<{
   notification: GithubNotification;
   enhancements: NotificationEnhancements | null;
 }>;
+export type RequiredComment = GithubComment &
+  Required<Pick<GithubComment, "body">>;
 
 function getSubjectComponent(type: string) {
   switch (type) {
@@ -21,15 +27,6 @@ function getSubjectComponent(type: string) {
   }
 
   return UnknownSubject;
-}
-
-function getReasonComponent(type: string) {
-  switch (type) {
-    case "comment":
-      return Comment;
-  }
-
-  return UnknownReason;
 }
 
 function typeIcon(notification: GithubNotification) {
@@ -49,41 +46,64 @@ export const Notification: NotificationSubject = ({
   notification,
   enhancements,
 }) => {
-  const onMarkRead = () => {};
+  const incrementPollId = useIncrementPollId();
+  const [markedRead, setMarkedRead] = useState(false);
+
+  const onMark = useRecoilCallback(({ snapshot, set }) => async () => {
+    const authToken = await snapshot.getPromise(authTokenState);
+    if (!authToken) return;
+
+    setMarkedRead(true);
+
+    try {
+      await markNotificationRead(authToken, notification);
+    } catch (err) {
+      setMarkedRead(false);
+    }
+
+    incrementPollId(true);
+  });
 
   const SubjectComponent = getSubjectComponent(notification.subject.type);
-  const ReasonComponent = getReasonComponent(notification.reason);
-
   const classNames = ["notification"];
-  if (notification.unread) {
-    classNames.push("unread");
-  } else {
-    classNames.push("read");
-  }
+
+  const isRead = notification.unread ? markedRead : false;
+  classNames.push(isRead ? "read" : "unread");
 
   return (
     <div className={classNames.join(" ")}>
       <aha-flex justify-content="space-between">
-        <aha-flex direction="column">
-          <SubjectComponent
-            notification={notification}
-            enhancements={enhancements}
-          />
-          <ReasonComponent
-            notification={notification}
-            enhancements={enhancements}
-          />
+        <aha-flex direction="column" gap="10px">
+          <aha-flex gap="8px">
+            {notification.repository.owner && (
+              <Avatar
+                src={notification.repository.owner?.avatar_url}
+                size={28}
+              />
+            )}
+            <SubjectComponent
+              notification={notification}
+              enhancements={enhancements}
+            />
+          </aha-flex>
+          {enhancements?.comment?.body && (
+            <Comment comment={enhancements.comment as RequiredComment} />
+          )}
         </aha-flex>
         <div className="right-info">
-          <div className="time-ago">{timeAgo(notification.updated_at)}</div>
+          <aha-flex direction="column" align-items="flex-end" gap="10px">
+            <aha-flex align-items="center" gap="5px">
+              <div className="time-ago">{timeAgo(notification.updated_at)}</div>
 
-          <div className="mark" onClick={onMarkRead}>
-            <aha-icon icon="fa fa-circle" />
-          </div>
+              <div className="type">
+                <aha-icon icon={`fa fa-${typeIcon(notification)}`} />
+              </div>
+            </aha-flex>
 
-          <div className="type">
-            <aha-icon icon={`fa fa-${typeIcon(notification)}`} />
-          </div>
+            <div className="mark" onClick={onMark}>
+              <aha-icon icon="fa fa-circle" />
+            </div>
+          </aha-flex>
         </div>
       </aha-flex>
     </div>

@@ -1,17 +1,25 @@
 import { AuthProvider } from "@aha-app/aha-develop-react";
-import React, { useEffect, useRef, useState } from "react";
-import { RecoilRoot, useRecoilState, useSetRecoilState } from "recoil";
+import React, { useEffect, useMemo, useRef } from "react";
+import {
+  RecoilRoot,
+  useRecoilCallback,
+  useSetRecoilState,
+  waitForAll,
+} from "recoil";
 import { NotificationList } from "../components/NotificationList";
+import { PanelBar } from "../components/PanelBar";
 import { IDENTIFIER } from "../extension";
 import { useGithubApi } from "../lib/useGithubApi";
+import { useIncrementPollId } from "../lib/useIncrementPollId";
+import { useRecoilCachedLoadble } from "../lib/useRecoilCachedLoadable";
+import { markAllRead } from "../store/helpers/markNotification";
 import {
   authTokenState,
-  loadingState,
-  notificationsState,
+  lastModifiedSelector,
+  nextPollAtSelector,
+  notificationsSelector,
   optionsState,
 } from "../store/notifications";
-import { listNotifications } from "../store/helpers/listNotifications";
-import { PanelBar } from "./PanelBar";
 import { Styles } from "./Styles";
 
 const panel = aha.getPanel(IDENTIFIER, "notificationsPanel", {
@@ -27,61 +35,54 @@ const NotificationsPanel: React.FC<Props> = ({
   showRead,
   onlyParticipating,
 }) => {
-  const lastModified = useRef<string | null>(null);
   const nextPollHandle = useRef<NodeJS.Timeout | null>(null);
-  const [notifications, setNotifications] = useRecoilState(notificationsState);
-  const setLoading = useSetRecoilState(loadingState);
+  const incrementPollId = useIncrementPollId();
   const setNotificationListOptions = useSetRecoilState(optionsState);
+  const [[notifications, nextPollAt], notificationsState] =
+    useRecoilCachedLoadble(
+      waitForAll([notificationsSelector, nextPollAtSelector]),
+      [[], null]
+    );
 
   useEffect(() => {
+    if (nextPollHandle.current) clearTimeout(nextPollHandle.current);
+
+    if (nextPollAt) {
+      const ms = nextPollAt.getTime() - Date.now();
+      if (ms > 0) {
+        console.log("setting timer for", ms);
+        nextPollHandle.current = setTimeout(() => {
+          incrementPollId();
+        }, ms);
+      }
+    }
+
     return () => {
       if (nextPollHandle.current) clearTimeout(nextPollHandle.current);
     };
-  }, []);
+  }, [nextPollAt]);
 
   useEffect(() => {
     setNotificationListOptions({ showRead, onlyParticipating });
   }, [showRead, onlyParticipating]);
 
-  const { authed, error, fetchData } = useGithubApi(
-    async (api) => {
-      if (nextPollHandle.current) clearTimeout(nextPollHandle.current);
-      setLoading(true);
-      let pollSeconds = 60;
+  const { authed, error, fetchData } = useGithubApi(async (api) => {
+    return true;
+  });
 
-      try {
-        const response = await listNotifications(
-          api,
-          {
-            showRead,
-            onlyParticipating,
-          },
-          lastModified.current
-        );
-
-        setNotifications(response.data);
-
-        if (response.headers["last-modified"]) {
-          lastModified.current = response.headers["last-modified"];
-        }
-
-        if (response.headers["x-poll-interval"]) {
-          pollSeconds = Number(response.headers["x-poll-interval"]);
-        }
-      } catch (error) {
-        if (error.status !== 304) {
-          throw error;
-        }
-      }
-
-      nextPollHandle.current = setTimeout(
-        () => fetchData(),
-        pollSeconds * 1000
-      );
-      setLoading(false);
-    },
-    [showRead, onlyParticipating]
+  const list = useMemo(
+    () => <NotificationList notifications={notifications || []} />,
+    [JSON.stringify(notifications)]
   );
+
+  const onMarkRead = useRecoilCallback(({ snapshot }) => async () => {
+    if (confirm("Are you sure you want to mark all notifications read?")) {
+      const authToken = await snapshot.getPromise(authTokenState);
+      if (!authToken) return;
+      await markAllRead(authToken);
+      incrementPollId(true);
+    }
+  });
 
   if (error) {
     return (
@@ -104,14 +105,13 @@ const NotificationsPanel: React.FC<Props> = ({
     );
   }
 
-  if (!lastModified.current) {
-    return <aha-spinner />;
-  }
-
   return (
     <div className="notifications">
-      <PanelBar onRefresh={fetchData} />
-      <NotificationList notifications={notifications} />
+      <PanelBar
+        onRefresh={() => incrementPollId(true)}
+        onMarkRead={() => onMarkRead()}
+      />
+      {list}
     </div>
   );
 };

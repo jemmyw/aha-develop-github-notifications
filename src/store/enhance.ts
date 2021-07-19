@@ -1,41 +1,37 @@
-import { Octokit } from "@octokit/rest";
-import gql from "gql-tag";
+import { Octokit, RestEndpointMethodTypes } from "@octokit/rest";
 import { selector } from "recoil";
 import { IDENTIFIER } from "../extension";
+import { ObjectCache } from "../lib/ObjectCache";
 import {
   GetPrsPullRequestEnhancement,
   listEnhancedPullRequests,
+  prIdentifierFromUrl,
   PullRequestEnhancement,
 } from "./helpers/listEnhancedPullRequests";
-import { authTokenState, notificationsState } from "./notifications";
-import { ObjectCache } from "../lib/ObjectCache";
+import {
+  authTokenState,
+  GithubNotification,
+  notificationsSelector,
+} from "./notifications";
 
-const prIdentifierFromUrl = (url: string) => {
-  const parts = url.split("?")[0].split("/").slice(-4);
-  return [parts[0], parts[1], parts[3]].join("/");
-};
+export type GithubComment =
+  RestEndpointMethodTypes["issues"]["getComment"]["response"]["data"];
 
-export const prInfoFromIdentifier = (id: string) => id.split("/");
-
-export const pullRequestQuery = (alias: string, idx: number) => {
-  return gql`
-    ${alias}: repository(owner: $owner_${idx}, name: $repo_${idx}) {
-      pullRequest(number: $number_${idx}) {
-        ...PullRequestInfo
-      }
-    }
-  `;
-};
+export interface NotificationEnhancements {
+  pullRequest?: PullRequestEnhancement;
+  comment?: GithubComment;
+}
 
 let pullRequestCache = new ObjectCache<PullRequestEnhancement>(
   IDENTIFIER + "_pullRequests"
 );
+let commentCache = new ObjectCache<GithubComment>(IDENTIFIER + "_comments");
 
 export const enhancedNotifications = selector({
   key: "enhancedNotifications",
   get: async ({ get }) => {
     const authToken = get(authTokenState);
-    const notifications = get(notificationsState);
+    const notifications = get(notificationsSelector);
 
     if (authToken === null) {
       return {};
@@ -43,36 +39,21 @@ export const enhancedNotifications = selector({
 
     const api = new Octokit({ auth: authToken });
 
-    const pullRequestInfo = [
-      ...new Set(
-        notifications
-          .filter((n) => n.subject.type === "PullRequest")
-          .filter(
-            (n) =>
-              !pullRequestCache.hasSince(
-                prIdentifierFromUrl(n.subject.url),
-                new Date(n.updated_at).getTime()
-              )
-          )
-          .map((n) => n.subject.url)
-      ),
-    ].map((url) => prIdentifierFromUrl(url));
+    const pullRequestIdentifiers =
+      uniquePullRequestsFromNotifications(notifications);
+    await populatePullRequestCache(
+      api,
+      pullRequestCache,
+      pullRequestIdentifiers
+    );
 
-    if (pullRequestInfo.length > 0) {
-      const response: GetPrsPullRequestEnhancement =
-        await listEnhancedPullRequests(pullRequestInfo, api);
-
-      Object.values(response).forEach(({ pullRequest }) => {
-        pullRequestCache.set(prIdentifierFromUrl(pullRequest.url), pullRequest);
-      });
-
-      pullRequestCache.persist();
-    }
+    const commentUrls = [
+      ...new Set(notifications.map((n) => n.subject.latest_comment_url)),
+    ].filter((url) => url && url.includes("/comments/"));
+    await populateCommentCache(api, commentCache, commentUrls);
 
     return notifications.reduce((acc, notification) => {
-      const enhancements: {
-        pullRequest?: PullRequestEnhancement;
-      } = {};
+      const enhancements: NotificationEnhancements = {};
 
       if (notification.subject.type === "PullRequest") {
         enhancements["pullRequest"] = pullRequestCache.get(
@@ -80,11 +61,83 @@ export const enhancedNotifications = selector({
         );
       }
 
+      enhancements["comment"] = commentCache.get(
+        notification.subject.latest_comment_url
+      );
+
       return { ...acc, [notification.id]: enhancements };
     }, {} as { [key: string]: NotificationEnhancements });
   },
 });
 
-export interface NotificationEnhancements {
-  pullRequest?: PullRequestEnhancement;
+function repoFromUrl(url: string): [string, string] | [] {
+  const match = url.match(/\/repos\/([^\/]+)\/([^\/]+)\//);
+  if (match) {
+    return [match[1], match[2]];
+  }
+
+  return [];
+}
+
+async function populateCommentCache(
+  api: Octokit,
+  cache: ObjectCache<any>,
+  commentUrls: string[]
+) {
+  await Promise.all(
+    commentUrls.map(async (url) => {
+      if (!cache.has(url)) {
+        const id = url.split("/").slice(-1)[0];
+        const [owner, repo] = repoFromUrl(url);
+
+        if (!id || !owner || !repo) return;
+
+        const response = await api.rest.issues.getComment({
+          comment_id: Number(id),
+          owner,
+          repo,
+        });
+
+        cache.set(url, response.data);
+      }
+    })
+  );
+
+  cache.persist();
+}
+
+async function populatePullRequestCache(
+  api: Octokit,
+  cache: ObjectCache<PullRequestEnhancement>,
+  pullRequestIdentifiers: string[]
+) {
+  if (pullRequestIdentifiers.length > 0) {
+    const response: GetPrsPullRequestEnhancement =
+      await listEnhancedPullRequests(pullRequestIdentifiers, api);
+
+    Object.values(response).forEach(({ pullRequest }) => {
+      cache.set(prIdentifierFromUrl(pullRequest.url), pullRequest);
+    });
+
+    cache.persist();
+  }
+}
+
+function uniquePullRequestsFromNotifications(
+  notifications: GithubNotification[]
+) {
+  return [
+    ...new Set(
+      notifications
+        .filter((n) => n.subject.type === "PullRequest")
+        .filter(
+          (n) =>
+            !pullRequestCache.hasSince(
+              prIdentifierFromUrl(n.subject.url),
+              new Date(n.updated_at).getTime()
+            )
+        )
+        .map((n) => n.subject.url)
+    ),
+  ].map((url) => prIdentifierFromUrl(url));
 }

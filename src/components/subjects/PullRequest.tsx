@@ -17,14 +17,18 @@ export const PullRequest: NotificationSubject = ({
   const enhancedPr = enhancements?.pullRequest;
 
   return (
-    <div>
-      <div className="title">
-        <a href={webLink(pullRequest.url)}>{pullRequest.title}</a>
-      </div>
-      <div className="subtitle">
-        <a href={webLink(pullRequest.url)}>{prUrlToNumber(pullRequest.url)}</a>
+    <aha-flex direction="column" gap="5px">
+      <div>
+        <div className="title">
+          <a href={webLink(pullRequest.url)}>{pullRequest.title}</a>
+        </div>
+        <div className="subtitle">
+          <a href={webLink(pullRequest.url)}>
+            {prUrlToNumber(pullRequest.url)}
+          </a>
+        </div>
       </div>
       {enhancedPr && <Labels labels={enhancedPr.labels.nodes} />}
-    </div>
+    </aha-flex>
   );
 };

@@ -1,11 +1,11 @@
 {
   "name": "kealabs.github-notifications",
   "description": "GitHub Notifications",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "author": "kealabs",
   "repository": {
     "type": "git",
-    "url": "TODO: Add the GitHub URL to your extension in package.json"
+    "url": "https://github.com/jemmyw/aha-develop-github-notifications.git"
   },
   "license": "MIT",
   "devDependencies": {
@@ -31,7 +31,6 @@
     "@octokit/graphql": "^4.6.4",
     "@octokit/rest": "^18.6.7",
     "gql-tag": "^1.0.1",
-    "graphql": "^15.5.1",
     "octokit": "^1.1.0",
     "react-markdown": "^6.0.2",
     "recoil": "^0.3.1"

@@ -1,5 +1,5 @@
 import React from "react";
-import { useRecoilCachedLoadble } from "../lib/useRecoilCachedLoadable";
+import { useRecoilCachedLoadable } from "../lib/useRecoilCachedLoadable";
 import { enhancedNotifications } from "../store/enhance";
 import { GithubNotification } from "../store/notifications";
 import { Notification } from "./subjects";
@@ -7,15 +7,30 @@ import { Notification } from "./subjects";
 export const NotificationList: React.FC<{
   notifications: GithubNotification[];
 }> = ({ notifications }) => {
-  const [enhancements] = useRecoilCachedLoadble(enhancedNotifications, {});
+  const [enhancements] = useRecoilCachedLoadable(enhancedNotifications, {});
 
-  const items = notifications.map((notification, idx) => (
-    <Notification
-      notification={notification}
-      enhancements={enhancements[notification.id]}
-      key={notification.id}
-    />
-  ));
+  const items =
+    notifications.length > 0 ? (
+      notifications.map((notification, idx) => (
+        <Notification
+          notification={notification}
+          enhancements={enhancements[notification.id]}
+          key={notification.id}
+        />
+      ))
+    ) : (
+      <div className="no-notifications">
+        <p>No notifications</p>
+      </div>
+    );
 
-  return <div className="notification-list">{items}</div>;
+  return (
+    <div
+      className={
+        "notification-list " + (notifications.length === 0 ? "empty" : "")
+      }
+    >
+      {items}
+    </div>
+  );
 };

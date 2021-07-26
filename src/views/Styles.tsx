@@ -22,6 +22,18 @@ export const Styles = () => {
           background-color: var(--aha-gray-200);
         }
 
+        .panel-bar .fa-spin {
+          color: var(--aha-gray-800);
+        }
+
+        .notification-list.empty {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding-top: 20px;
+          text-align: center;
+        }
+
         .notification.read .mark {
           color: var(--aha-gray-400);
         }

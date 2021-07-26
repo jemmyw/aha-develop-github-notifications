@@ -1,5 +1,5 @@
 import { Octokit, RestEndpointMethodTypes } from "@octokit/rest";
-import { atom, DefaultValue, selector, selectorFamily } from "recoil";
+import { atom, DefaultValue, noWait, selector, selectorFamily } from "recoil";
 import { IDENTIFIER } from "../extension";
 import { ObjectCache } from "../lib/ObjectCache";
 import {
@@ -130,4 +130,10 @@ export const unreadCountSelector = selector({
   get: ({ get }) => get(notificationsSelector).filter((n) => n.unread).length,
 });
 
-export const loadingState = atom({ key: "loading", default: false });
+export const loadingState = selector({
+  key: "loading",
+  get: ({ get }) => {
+    const state = get(noWait(listNotificationsSelector));
+    return state.state === "loading";
+  },
+});

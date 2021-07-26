@@ -7,7 +7,7 @@ import { IDENTIFIER } from "../extension";
 import { useGithubApi } from "../lib/useGithubApi";
 import { useIncrementPollId } from "../lib/useIncrementPollId";
 import { usePropSync } from "../lib/usePropSync";
-import { useRecoilCachedLoadble } from "../lib/useRecoilCachedLoadable";
+import { useRecoilCachedLoadable } from "../lib/useRecoilCachedLoadable";
 import { showLabelsState } from "../store/display";
 import { markAllRead } from "../store/helpers/markNotification";
 import {
@@ -36,7 +36,7 @@ const NotificationsPanel: React.FC<Props> = ({
   const nextPollHandle = useRef<NodeJS.Timeout | null>(null);
   const incrementPollId = useIncrementPollId();
   const [[notifications, nextPollAt], notificationsState] =
-    useRecoilCachedLoadble(
+    useRecoilCachedLoadable(
       waitForAll([notificationsSelector, nextPollAtSelector]),
       [[], null]
     );
@@ -47,7 +47,7 @@ const NotificationsPanel: React.FC<Props> = ({
     if (nextPollAt) {
       const ms = nextPollAt.getTime() - Date.now();
       if (ms > 0) {
-        console.log("setting timer for", ms);
+        console.log(`Github notifications polling in ${ms / 1000}s`);
         nextPollHandle.current = setTimeout(() => {
           incrementPollId();
         }, ms);

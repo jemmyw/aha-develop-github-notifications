@@ -7,7 +7,7 @@ type CachedLoadableState =
   | "loading"
   | "hasCachedValue";
 
-export function useRecoilCachedLoadble<T>(
+export function useRecoilCachedLoadable<T>(
   recoilValue: RecoilValue<T>,
   initialValue: T
 ): [T, CachedLoadableState] {

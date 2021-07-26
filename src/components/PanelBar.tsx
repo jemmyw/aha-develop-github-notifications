@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useRecoilValue, useRecoilValueLoadable } from "recoil";
-import { useRecoilCachedLoadble } from "../lib/useRecoilCachedLoadable";
+import { useRecoilCachedLoadable } from "../lib/useRecoilCachedLoadable";
 import { loadingState, unreadCountSelector } from "../store/notifications";
 
 interface Props {
@@ -8,8 +8,28 @@ interface Props {
   onMarkRead: () => void;
 }
 
+const Spinner: React.FC<{ icon: string; spin: boolean }> = ({ icon, spin }) => {
+  const [showSpin, setShowSpin] = useState(spin);
+
+  useEffect(() => {
+    if (spin && !showSpin) setShowSpin(true);
+  });
+
+  const handleSpinIteration = () => {
+    if (spin) return;
+    setShowSpin(false);
+  };
+
+  return (
+    <i
+      className={`fa fa-${icon} ${showSpin ? "fa-spin" : ""}`}
+      onAnimationIteration={() => handleSpinIteration()}
+    />
+  );
+};
+
 export const PanelBar: React.FC<Props> = ({ onRefresh, onMarkRead }) => {
-  const [unreadCount] = useRecoilCachedLoadble(unreadCountSelector, 0);
+  const [unreadCount] = useRecoilCachedLoadable(unreadCountSelector, 0);
   const loading = useRecoilValue(loadingState);
 
   return (
@@ -24,7 +44,7 @@ export const PanelBar: React.FC<Props> = ({ onRefresh, onMarkRead }) => {
           style={{ flexGrow: 1, flexBasis: 0 }}
         >
           <aha-button type="unstyled" onClick={onRefresh} disabled={loading}>
-            <aha-icon icon={`fa fa-sync ${loading ? "fa-spin" : ""}`} />
+            <Spinner icon="sync" spin={loading} />
           </aha-button>
           <aha-button type="unstyled" onClick={onMarkRead}>
             <aha-icon icon="fa fa-eye" />

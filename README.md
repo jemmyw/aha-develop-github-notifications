@@ -8,7 +8,7 @@ Create a dashboard panel showing your github notifications
 
 **Note: In order to install an extension into your Aha! Develop account, you must be an account administrator.**
 
-Install the GitHub Notifications extension by clicking [here](https://secure.aha.io/settings/account/extensions/install?url=).
+Install the GitHub Notifications extension by clicking [here](https://secure.aha.io/settings/account/extensions/install?url=https://github.com/jemmyw/aha-develop-github-notifications/releases/download/1.0.0/kealabs.github-notifications-v1.0.0.gz).
 
 ## Working on the extension
 

@@ -1,6 +1,9 @@
 import { useEffect } from "react";
-import { RecoilState, useRecoilState, useSetRecoilState } from "recoil";
+import { RecoilState, useSetRecoilState } from "recoil";
 
+/**
+ * Sync a local prop to a recoil atom
+ */
 export function usePropSync(prop: any, value: RecoilState<any>, deps: any[]) {
   const setValue = useSetRecoilState(value);
 

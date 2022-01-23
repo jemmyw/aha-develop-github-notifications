@@ -13,6 +13,14 @@ export class ObjectCache<T> {
     }
   }
 
+  public keys() {
+    return Object.keys(this.cache);
+  }
+
+  public values() {
+    return Object.values(this.cache);
+  }
+
   public get(key: string): T {
     return this.cache[key];
   }

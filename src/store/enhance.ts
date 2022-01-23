@@ -3,8 +3,7 @@ import { selector } from "recoil";
 import { IDENTIFIER } from "../extension";
 import { ObjectCache } from "../lib/ObjectCache";
 import {
-  GetPrsPullRequestEnhancement,
-  listEnhancedPullRequests,
+  Label,
   prIdentifierFromUrl,
   PullRequestEnhancement,
 } from "./helpers/listEnhancedPullRequests";
@@ -13,11 +12,15 @@ import {
   GithubNotification,
   notificationsSelector,
 } from "./notifications";
+import { populatePullRequestCache } from "./helpers/populatePullRequestCache";
+import { uniquePullRequestsFromNotifications } from "./helpers/uniquePullRequestsFromNotifications";
+import { populateCommentCache } from "./helpers/populateCommentCache";
 
 export type GithubComment =
   RestEndpointMethodTypes["issues"]["getComment"]["response"]["data"];
 
-export interface NotificationEnhancements {
+export interface EnhancedNotification {
+  notification: GithubNotification;
   pullRequest?: PullRequestEnhancement;
   comment?: GithubComment;
 }
@@ -27,117 +30,96 @@ let pullRequestCache = new ObjectCache<PullRequestEnhancement>(
 );
 let commentCache = new ObjectCache<GithubComment>(IDENTIFIER + "_comments");
 
-export const enhancedNotifications = selector({
-  key: "enhancedNotifications",
-  get: async ({ get }) => {
+const apiSelector = selector({
+  key: "apiSelector",
+  get: ({ get }) => {
     const authToken = get(authTokenState);
+    if (authToken === null) return null;
+    return new Octokit({ auth: authToken });
+  },
+});
+
+const pullRequestsSelector = selector({
+  key: "pullRequestsSelector",
+  get: async ({ get }) => {
     const notifications = get(notificationsSelector);
+    const api = get(apiSelector);
+    if (!api) return pullRequestCache;
 
-    if (authToken === null) {
-      return {};
-    }
-
-    const api = new Octokit({ auth: authToken });
-
-    const pullRequestIdentifiers =
-      uniquePullRequestsFromNotifications(notifications);
+    const pullRequestIdentifiers = uniquePullRequestsFromNotifications(
+      notifications,
+      pullRequestCache
+    );
     await populatePullRequestCache(
       api,
       pullRequestCache,
       pullRequestIdentifiers
     );
 
-    const commentUrls = [
+    return pullRequestCache;
+  },
+});
+
+const commentUrlsSelector = selector({
+  key: "commentUrlsSelector",
+  get: ({ get }) => {
+    const notifications = get(notificationsSelector);
+
+    return [
       ...new Set(notifications.map((n) => n.subject.latest_comment_url)),
     ].filter((url) => url && url.includes("/comments/"));
+  },
+});
+
+const commentsSelector = selector({
+  key: "commentsSelector",
+  get: async ({ get }) => {
+    const api = get(apiSelector);
+    if (!api) return commentCache;
+    const commentUrls = get(commentUrlsSelector);
     await populateCommentCache(api, commentCache, commentUrls);
+    return commentCache;
+  },
+});
+
+export const enhancedNotifications = selector({
+  key: "enhancedNotifications",
+  get: async ({ get }) => {
+    const notifications = get(notificationsSelector);
+    const comments = get(commentsSelector);
+    const pullRequests = get(pullRequestsSelector);
 
     return notifications.reduce((acc, notification) => {
-      const enhancements: NotificationEnhancements = {};
+      const enhancements: EnhancedNotification = { notification };
 
       if (notification.subject.type === "PullRequest") {
-        enhancements["pullRequest"] = pullRequestCache.get(
+        enhancements["pullRequest"] = pullRequests.get(
           prIdentifierFromUrl(notification.subject.url)
         );
       }
 
-      enhancements["comment"] = commentCache.get(
+      enhancements["comment"] = comments.get(
         notification.subject.latest_comment_url
       );
 
-      return { ...acc, [notification.id]: enhancements };
-    }, {} as { [key: string]: NotificationEnhancements });
+      acc.push(enhancements);
+      return acc;
+    }, [] as EnhancedNotification[]);
   },
 });
 
-function repoFromUrl(url: string): [string, string] | [] {
-  const match = url.match(/\/repos\/([^\/]+)\/([^\/]+)\//);
-  if (match) {
-    return [match[1], match[2]];
-  }
-
-  return [];
-}
-
-async function populateCommentCache(
-  api: Octokit,
-  cache: ObjectCache<any>,
-  commentUrls: string[]
-) {
-  await Promise.all(
-    commentUrls.map(async (url) => {
-      if (!cache.has(url)) {
-        const id = url.split("/").slice(-1)[0];
-        const [owner, repo] = repoFromUrl(url);
-
-        if (!id || !owner || !repo) return;
-
-        const response = await api.rest.issues.getComment({
-          comment_id: Number(id),
-          owner,
-          repo,
-        });
-
-        cache.set(url, response.data);
-      }
-    })
-  );
-
-  cache.persist();
-}
-
-async function populatePullRequestCache(
-  api: Octokit,
-  cache: ObjectCache<PullRequestEnhancement>,
-  pullRequestIdentifiers: string[]
-) {
-  if (pullRequestIdentifiers.length > 0) {
-    const response: GetPrsPullRequestEnhancement =
-      await listEnhancedPullRequests(pullRequestIdentifiers, api);
-
-    Object.values(response).forEach(({ pullRequest }) => {
-      cache.set(prIdentifierFromUrl(pullRequest.url), pullRequest);
-    });
-
-    cache.persist();
-  }
-}
-
-function uniquePullRequestsFromNotifications(
-  notifications: GithubNotification[]
-) {
-  return [
-    ...new Set(
-      notifications
-        .filter((n) => n.subject.type === "PullRequest")
-        .filter(
-          (n) =>
-            !pullRequestCache.hasSince(
-              prIdentifierFromUrl(n.subject.url),
-              new Date(n.updated_at).getTime()
-            )
-        )
-        .map((n) => n.subject.url)
-    ),
-  ].map((url) => prIdentifierFromUrl(url));
-}
+export const uniqueLabelsSelector = selector({
+  key: "uniqueLabelsSelector",
+  get: ({ get }) => {
+    const pullRequests = get(pullRequestsSelector);
+    return [
+      ...pullRequests
+        .values()
+        .reduce((acc, pr) => {
+          pr.labels.nodes.forEach((label) => acc.set(label.name, label));
+          return acc;
+        }, new Map<string, Label>())
+        .values(),
+    ].sort((a, b) => a.name.localeCompare(b.name));
+  },
+});

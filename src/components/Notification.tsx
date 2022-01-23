@@ -1,21 +1,18 @@
-import React, { useState } from "react";
-import { useRecoilCallback } from "recoil";
+import React from "react";
+import { useRecoilValue } from "recoil";
 import { timeAgo } from "../lib/timeAgo";
-import { useIncrementPollId } from "../lib/useIncrementPollId";
-import { GithubComment, NotificationEnhancements } from "../store/enhance";
-import { markNotificationRead } from "../store/helpers/markNotification";
-import { authTokenState, GithubNotification } from "../store/notifications";
+import { EnhancedNotification, GithubComment } from "../store/enhance";
+import { GithubNotification } from "../store/notifications";
+import { notificationMarkedReadSelector, useMarkListRead } from "../store/read";
 import { Avatar } from "./Avatar";
 import { Comment } from "./Comment";
 import { PullRequest, UnknownSubject } from "./subjects";
 
 export type NotificationSubject = React.FC<{
-  notification: GithubNotification;
-  enhancements: NotificationEnhancements | null;
+  enhanced: EnhancedNotification;
 }>;
 export type NotificationReason = React.FC<{
-  notification: GithubNotification;
-  enhancements: NotificationEnhancements | null;
+  notification: EnhancedNotification;
 }>;
 export type RequiredComment = GithubComment &
   Required<Pick<GithubComment, "body">>;
@@ -42,32 +39,22 @@ function typeIcon(notification: GithubNotification) {
   return notification.reason;
 }
 
-export const Notification: NotificationSubject = ({
-  notification,
-  enhancements,
-}) => {
-  const incrementPollId = useIncrementPollId();
-  const [markedRead, setMarkedRead] = useState(false);
+export const Notification: NotificationSubject = ({ enhanced }) => {
+  const { notification } = enhanced;
+  const markedRead = useRecoilValue(
+    notificationMarkedReadSelector(notification.id)
+  );
+  console.log(notification.id, markedRead);
+  const setMarkedRead = useMarkListRead();
 
-  const onMark = useRecoilCallback(({ snapshot, set }) => async () => {
-    const authToken = await snapshot.getPromise(authTokenState);
-    if (!authToken) return;
-
-    setMarkedRead(true);
-
-    try {
-      await markNotificationRead(authToken, notification);
-    } catch (err) {
-      setMarkedRead(false);
-    }
-
-    incrementPollId(true);
-  });
+  const onMark = () => {
+    setMarkedRead([enhanced.notification]);
+  };
 
   const SubjectComponent = getSubjectComponent(notification.subject.type);
   const classNames = ["notification"];
 
-  if (notification.unread && markedRead) {
+  if (markedRead) {
     classNames.push("read fade");
   } else if (notification.unread) {
     classNames.push("unread");
@@ -86,13 +73,10 @@ export const Notification: NotificationSubject = ({
                 size={28}
               />
             )}
-            <SubjectComponent
-              notification={notification}
-              enhancements={enhancements}
-            />
+            <SubjectComponent enhanced={enhanced} />
           </aha-flex>
-          {enhancements?.comment?.body && (
-            <Comment comment={enhancements.comment as RequiredComment} />
+          {enhanced?.comment?.body && (
+            <Comment comment={enhanced.comment as RequiredComment} />
           )}
         </aha-flex>
         <div className="right-info">

@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useRecoilValue, useRecoilValueLoadable } from "recoil";
+import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { useRecoilCachedLoadable } from "../lib/useRecoilCachedLoadable";
+import {
+  filterActiveSelector,
+  filteredUnreadCountSelector,
+  showFilterAtom,
+} from "../store/filters";
 import { loadingState, unreadCountSelector } from "../store/notifications";
 
 interface Props {
@@ -29,8 +34,14 @@ const Spinner: React.FC<{ icon: string; spin: boolean }> = ({ icon, spin }) => {
 };
 
 export const PanelBar: React.FC<Props> = ({ onRefresh, onMarkRead }) => {
-  const [unreadCount] = useRecoilCachedLoadable(unreadCountSelector, 0);
+  const [unreadCount] = useRecoilCachedLoadable(filteredUnreadCountSelector, 0);
   const loading = useRecoilValue(loadingState);
+  const setShowFilter = useSetRecoilState(showFilterAtom);
+  const filterActive = useRecoilValue(filterActiveSelector);
+
+  const onShowFilter = () => {
+    setShowFilter((t) => !t);
+  };
 
   return (
     <div className="panel-bar">
@@ -43,12 +54,20 @@ export const PanelBar: React.FC<Props> = ({ onRefresh, onMarkRead }) => {
           justify-content="flex-end"
           style={{ flexGrow: 1, flexBasis: 0 }}
         >
-          <aha-button type="unstyled" onClick={onRefresh} disabled={loading}>
-            <Spinner icon="sync" spin={loading} />
-          </aha-button>
-          <aha-button type="unstyled" onClick={onMarkRead}>
-            <aha-icon icon="fa fa-eye" />
-          </aha-button>
+          <aha-button-group>
+            <aha-button onClick={onRefresh}>
+              <Spinner icon="sync" spin={loading} />
+            </aha-button>
+            <aha-button onClick={onMarkRead}>
+              <aha-icon icon="fa fa-eye" />
+            </aha-button>
+            <aha-button
+              onClick={onShowFilter}
+              kind={filterActive ? "secondary" : "default"}
+            >
+              <aha-icon icon="fa fa-filter" />
+            </aha-button>
+          </aha-button-group>
         </aha-flex>
       </aha-flex>
     </div>

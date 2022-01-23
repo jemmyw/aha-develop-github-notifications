@@ -1,12 +1,10 @@
 import { Octokit, RestEndpointMethodTypes } from "@octokit/rest";
-import { atom, DefaultValue, noWait, selector, selectorFamily } from "recoil";
-import { IDENTIFIER } from "../extension";
+import { atom, noWait, selector } from "recoil";
 import { ObjectCache } from "../lib/ObjectCache";
 import {
   listNotifications,
   listNotificationsOptions,
 } from "./helpers/listNotifications";
-import { localStorageEffect } from "./localStorageEffect";
 
 type ArrayElement<ArrayType extends readonly unknown[]> =
   ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
@@ -75,7 +73,9 @@ export const listNotificationsSelector = selector({
       const response = await listNotifications(api, options, lastModified);
       setCache(response);
       return response;
-    } catch (error) {
+    } catch (err) {
+      const error = err as any;
+
       if (error.status === 304 && priorResponse) {
         setCache(priorResponse);
         return priorResponse;

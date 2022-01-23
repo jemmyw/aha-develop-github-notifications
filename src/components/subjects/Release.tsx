@@ -1,7 +1,8 @@
 import React from "react";
 import { NotificationSubject } from "../Notification";
 
-export const Release: NotificationSubject = ({ notification }) => {
+export const Release: NotificationSubject = ({ enhanced }) => {
+  const { notification } = enhanced;
   const { subject: release } = notification;
 
   return (

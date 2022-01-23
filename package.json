@@ -30,9 +30,14 @@
     "@aha-app/aha-develop-react": "^1.0.6",
     "@octokit/graphql": "^4.6.4",
     "@octokit/rest": "^18.6.7",
+    "@types/color": "^3.0.2",
+    "add": "^2.0.6",
+    "color": "^4.2.0",
     "gql-tag": "^1.0.1",
     "octokit": "^1.1.0",
     "react-markdown": "^6.0.2",
-    "recoil": "^0.3.1"
+    "react-select": "^5.2.2",
+    "recoil": "^0.3.1",
+    "yarn": "^1.22.17"
   }
 }

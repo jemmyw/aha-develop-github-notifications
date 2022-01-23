@@ -2,7 +2,10 @@ import React from "react";
 import { useRecoilValue } from "recoil";
 import { webLink } from "../../lib/webLink";
 import { showLabelsState } from "../../store/display";
-import { PullRequestEnhancement } from "../../store/helpers/listEnhancedPullRequests";
+import {
+  PullRequestEnhancement,
+  PULL_REQUEST_STATES,
+} from "../../store/helpers/listEnhancedPullRequests";
 import { Labels } from "../Labels";
 import { NotificationSubject } from "../Notification";
 
@@ -12,47 +15,32 @@ function prUrlToNumber(url: string) {
   return `${owner}/${repo}#${number}`;
 }
 
-const PullRequestState: React.FC<{ state: PullRequestEnhancement["state"] }> =
-  ({ state }) => {
-    const states = {
-      OPEN: {
-        backgroundColor: "#e5f3d6",
-        color: "#4f8f0e",
-      },
-      MERGED: {
-        color: "#564169",
-        backgroundColor: "#e5dced",
-      },
-      CLOSED: {
-        color: "#992e0b",
-        backgroundColor: "#fae7e1",
-      },
-    };
+const PullRequestState: React.FC<{
+  state: PullRequestEnhancement["state"];
+}> = ({ state }) => {
+  const states = PULL_REQUEST_STATES;
+  const style = { ...states[state] };
 
-    const style = { ...states[state] };
+  return (
+    <div
+      style={{
+        ...style,
+        padding: "3px 5px 2px 5px",
+        borderRadius: "10px",
+        border: `1px solid ${style.color}`,
+        fontWeight: "bold",
+      }}
+    >
+      {state}
+    </div>
+  );
+};
 
-    return (
-      <div
-        style={{
-          ...style,
-          padding: "3px 5px 2px 5px",
-          borderRadius: "10px",
-          border: `1px solid ${style.color}`,
-          fontWeight: "bold",
-        }}
-      >
-        {state}
-      </div>
-    );
-  };
-
-export const PullRequest: NotificationSubject = ({
-  notification,
-  enhancements,
-}) => {
+export const PullRequest: NotificationSubject = ({ enhanced }) => {
+  const { notification } = enhanced;
   const showLabels = useRecoilValue(showLabelsState);
   const { subject: pullRequest } = notification;
-  const enhancedPr = enhancements?.pullRequest;
+  const enhancedPr = enhanced.pullRequest;
 
   return (
     <aha-flex direction="column" gap="5px">

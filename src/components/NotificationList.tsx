@@ -1,21 +1,20 @@
 import React from "react";
 import { useRecoilCachedLoadable } from "../lib/useRecoilCachedLoadable";
-import { enhancedNotifications } from "../store/enhance";
-import { GithubNotification } from "../store/notifications";
+import { filteredNotificationsSelector } from "../store/filters";
 import { Notification } from "./subjects";
 
-export const NotificationList: React.FC<{
-  notifications: GithubNotification[];
-}> = ({ notifications }) => {
-  const [enhancements] = useRecoilCachedLoadable(enhancedNotifications, {});
+export const NotificationList: React.FC<{}> = () => {
+  const [notifications] = useRecoilCachedLoadable(
+    filteredNotificationsSelector,
+    []
+  );
 
   const items =
     notifications.length > 0 ? (
       notifications.map((notification, idx) => (
         <Notification
-          notification={notification}
-          enhancements={enhancements[notification.id]}
-          key={notification.id}
+          enhanced={notification}
+          key={notification.notification.id}
         />
       ))
     ) : (

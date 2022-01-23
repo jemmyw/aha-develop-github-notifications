@@ -83,6 +83,10 @@ export const Styles = () => {
           margin-left: 5px;
           padding-left: 10px;
         }
+
+        .select__menu {
+          position: relative !important;
+        }
       `}
     </style>
   );

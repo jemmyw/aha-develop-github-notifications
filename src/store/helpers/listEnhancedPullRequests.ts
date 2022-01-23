@@ -1,12 +1,14 @@
 import { Octokit } from "@octokit/rest";
 import gql from "gql-tag";
 
+export type PullRequestState = "OPEN" | "CLOSED" | "MERGED";
+
 export interface PullRequestEnhancement {
   id: number;
   number: number;
   title: string;
   url: string;
-  state: "OPEN" | "CLOSED" | "MERGED";
+  state: PullRequestState;
   labels: {
     nodes: Label[];
   };
@@ -93,3 +95,24 @@ export async function listEnhancedPullRequests(
 
   return (await api.graphql(query, variables)) as GetPrsPullRequestEnhancement;
 }
+
+export const PULL_REQUEST_STATES: Record<
+  PullRequestState,
+  { name: PullRequestState; backgroundColor: string; color: string }
+> = {
+  OPEN: {
+    name: "OPEN",
+    backgroundColor: "#e5f3d6",
+    color: "#4f8f0e",
+  },
+  MERGED: {
+    name: "MERGED",
+    color: "#564169",
+    backgroundColor: "#e5dced",
+  },
+  CLOSED: {
+    name: "CLOSED",
+    color: "#992e0b",
+    backgroundColor: "#fae7e1",
+  },
+};

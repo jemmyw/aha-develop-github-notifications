@@ -10,5 +10,5 @@
     "target": "ES6",
     "strict": true
   },
-  "include": [".aha-cache/types", "src"]
+  "include": [".aha-cache/types/*.ts", "src"]
 }

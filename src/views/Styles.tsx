@@ -19,11 +19,11 @@ export const Styles = () => {
     <style>
       {css`
         .panel-bar {
-          background-color: var(--aha-gray-200);
+          background-color: var(--theme-secondary-background);
         }
 
         .panel-bar .fa-spin {
-          color: var(--aha-gray-800);
+          color: var(--theme-tertiary-text);
         }
 
         .notification-list.empty {
@@ -52,9 +52,9 @@ export const Styles = () => {
         }
 
         .notification {
-          border-top: 1px solid white;
-          border-bottom: 1px solid var(--aha-gray-400);
-          background: var(--aha-gray-100);
+          border-top: 1px solid var(--theme-primary-background);
+          border-bottom: 1px solid var(--theme-secondary-border);
+          background: var(--theme-secondary-background);
           padding: 8px;
         }
 
@@ -67,7 +67,7 @@ export const Styles = () => {
         }
 
         .notification .right-info {
-          color: var(--aha-gray-800);
+          color: var(--theme-secondary-text);
         }
 
         .notification .comment {
@@ -79,7 +79,7 @@ export const Styles = () => {
         }
 
         .notification .comment-content blockquote {
-          border-left: 3px solid var(--aha-gray-600);
+          border-left: 3px solid var(--theme-tertiary-border);
           margin-left: 5px;
           padding-left: 10px;
         }

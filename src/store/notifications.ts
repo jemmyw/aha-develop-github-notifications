@@ -10,6 +10,9 @@ type ArrayElement<ArrayType extends readonly unknown[]> =
   ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
 type GithubNotifications =
   RestEndpointMethodTypes["activity"]["listNotificationsForAuthenticatedUser"]["response"]["data"];
+type OctokitNotificationsResponse = ThenArg<
+  ReturnType<typeof listNotifications>
+>;
 export type GithubNotification = ArrayElement<GithubNotifications>;
 
 export const authTokenState = atom<string | null>({
@@ -31,9 +34,9 @@ export const optionsState = atom<listNotificationsOptions>({
 });
 
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T;
-const notificationsCache = new ObjectCache<
-  ThenArg<ReturnType<typeof listNotifications>>
->("listNotifications");
+const notificationsCache = new ObjectCache<OctokitNotificationsResponse>(
+  "listNotifications"
+);
 
 const notificationsCacheKey = (
   id: number,
@@ -62,24 +65,23 @@ export const listNotificationsSelector = selector({
 
     let lastModified = priorResponse?.headers["last-modified"] || null;
 
-    const setCache = (response: any) => {
+    const setCache = (response: OctokitNotificationsResponse) => {
       notificationsCache.clear();
       notificationsCache.set(
         notificationsCacheKey(id, authToken, options),
         response
       );
+      return { ...response, pollId: id };
     };
 
     try {
       const response = await listNotifications(api, options, lastModified);
-      setCache(response);
-      return response;
+      return setCache(response);
     } catch (err) {
       const error = err as any;
 
       if (error.status === 304 && priorResponse) {
-        setCache(priorResponse);
-        return priorResponse;
+        return setCache(priorResponse);
       } else {
         throw error;
       }

@@ -10,6 +10,7 @@ import { PullRequest, UnknownSubject } from "./subjects";
 
 export type NotificationSubject = React.FC<{
   enhanced: EnhancedNotification;
+  onVisit?: () => void;
 }>;
 export type NotificationReason = React.FC<{
   notification: EnhancedNotification;
@@ -44,12 +45,9 @@ export const Notification: NotificationSubject = ({ enhanced }) => {
   const markedRead = useRecoilValue(
     notificationMarkedReadSelector(notification.id)
   );
-  console.log(notification.id, markedRead);
   const setMarkedRead = useMarkListRead();
-
-  const onMark = () => {
-    setMarkedRead([enhanced.notification]);
-  };
+  const onMark = () => setMarkedRead([notification]);
+  const onMarkReload = () => setMarkedRead([notification], true);
 
   const SubjectComponent = getSubjectComponent(notification.subject.type);
   const classNames = ["notification"];
@@ -73,7 +71,7 @@ export const Notification: NotificationSubject = ({ enhanced }) => {
                 size={28}
               />
             )}
-            <SubjectComponent enhanced={enhanced} />
+            <SubjectComponent enhanced={enhanced} onVisit={onMark} />
           </aha-flex>
           {enhanced?.comment?.body && (
             <Comment comment={enhanced.comment as RequiredComment} />
@@ -89,7 +87,7 @@ export const Notification: NotificationSubject = ({ enhanced }) => {
               </div>
             </aha-flex>
 
-            <div className="mark" onClick={onMark}>
+            <div className="mark" onClick={onMarkReload}>
               <aha-icon icon="fa fa-circle" />
             </div>
           </aha-flex>

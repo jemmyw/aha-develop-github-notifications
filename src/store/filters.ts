@@ -1,8 +1,9 @@
 import { atom, selector, selectorFamily } from "recoil";
 import { IDENTIFIER } from "../extension";
 import { enhancedNotifications } from "./enhance";
-import { Label, PullRequestState } from "./helpers/listEnhancedPullRequests";
+import { PullRequestState } from "./helpers/listEnhancedPullRequests";
 import { localStorageEffect } from "./localStorageEffect";
+import { markedReadAtom } from "./read";
 
 interface Filters {
   labels: string[];
@@ -74,7 +75,11 @@ export const filteredNotificationsSelector = selector({
 
 export const filteredUnreadCountSelector = selector({
   key: "filteredUnreadCountSelector",
-  get: ({ get }) =>
-    get(filteredNotificationsSelector).filter((n) => n.notification.unread)
-      .length,
+  get: ({ get }) => {
+    const filteredNotifications = get(filteredNotificationsSelector);
+    const makredRead = get(markedReadAtom);
+    return filteredNotifications.filter(
+      (n) => n.notification.unread && !makredRead.includes(n.notification.id)
+    ).length;
+  },
 });

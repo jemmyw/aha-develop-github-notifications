@@ -36,7 +36,7 @@ const PullRequestState: React.FC<{
   );
 };
 
-export const PullRequest: NotificationSubject = ({ enhanced }) => {
+export const PullRequest: NotificationSubject = ({ enhanced, onVisit }) => {
   const { notification } = enhanced;
   const showLabels = useRecoilValue(showLabelsState);
   const { subject: pullRequest } = notification;
@@ -46,7 +46,7 @@ export const PullRequest: NotificationSubject = ({ enhanced }) => {
     <aha-flex direction="column" gap="5px">
       <div>
         <div className="title">
-          <a href={webLink(pullRequest.url)} target="_blank">
+          <a href={webLink(pullRequest.url)} target="_blank" onClick={onVisit}>
             {pullRequest.title}
           </a>
         </div>
@@ -55,7 +55,11 @@ export const PullRequest: NotificationSubject = ({ enhanced }) => {
             {enhancedPr && <PullRequestState state={enhancedPr.state} />}
           </div>
           <div className="subtitle">
-            <a href={webLink(pullRequest.url)} target="_blank">
+            <a
+              href={webLink(pullRequest.url)}
+              target="_blank"
+              onClick={onVisit}
+            >
               {prUrlToNumber(pullRequest.url)}
             </a>
           </div>

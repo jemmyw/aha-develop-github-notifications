@@ -1,54 +1,59 @@
 import {
   atom,
   DefaultValue,
+  selector,
   selectorFamily,
+  useRecoilCallback,
   useRecoilState,
   useRecoilValue,
 } from "recoil";
 import { useIncrementPollId } from "../lib/useIncrementPollId";
 import { markListRead } from "./helpers/markNotification";
-import { authTokenState, GithubNotification } from "./notifications";
+import {
+  authTokenState,
+  GithubNotification,
+  notificationsSelector,
+} from "./notifications";
 
 export const markedReadAtom = atom({
   key: "markedReadAtom",
-  default: new Set<string>(),
+  default: [] as string[],
 });
 
 export const notificationMarkedReadSelector = selectorFamily<boolean, string>({
   key: "notificationMarkedReadSelector",
   get:
     (id) =>
-    ({ get }) => {
-      return get(markedReadAtom).has(id);
-    },
+    ({ get }) =>
+      get(markedReadAtom).includes(id),
   set:
     (id) =>
-    ({ set, get }, newValue) => {
-      const markedRead = get(markedReadAtom);
-
-      if (!newValue || newValue instanceof DefaultValue) {
-        markedRead.delete(id);
-      } else {
-        markedRead.add(id);
-      }
-
-      set(markedReadAtom, markedRead);
+    ({ set }, newValue) => {
+      set(markedReadAtom, (markedRead) => {
+        if (!newValue || newValue instanceof DefaultValue) {
+          return markedRead.filter((markedId) => markedId !== id);
+        } else {
+          return [...markedRead, id];
+        }
+      });
     },
 });
 
 export const useMarkListRead = () => {
-  const [markedRead, setMarkedRead] = useRecoilState(markedReadAtom);
   const authToken = useRecoilValue(authTokenState);
   const incrementPollId = useIncrementPollId();
 
-  return async (notifications: GithubNotification[]) => {
-    if (!authToken) return;
+  const markAsRead = useRecoilCallback(({ set }) => (ids: string[]) => {
+    set(markedReadAtom, (markedRead) => [...markedRead, ...ids]);
+  });
 
-    notifications.forEach((n) => markedRead.add(n.id));
-    setMarkedRead(markedRead);
+  return async (notifications: GithubNotification[], reload?: boolean) => {
+    await markAsRead(notifications.map((n) => n.id));
 
-    await markListRead(authToken, notifications);
-
-    incrementPollId(true);
+    if (reload) {
+      if (!authToken) return;
+      await markListRead(authToken, notifications);
+      incrementPollId(true);
+    }
   };
 };

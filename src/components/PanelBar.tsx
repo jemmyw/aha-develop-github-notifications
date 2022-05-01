@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
+import { useRecoilValue, useSetRecoilState } from "recoil";
 import { useRecoilCachedLoadable } from "../lib/useRecoilCachedLoadable";
 import {
   filterActiveSelector,
   filteredUnreadCountSelector,
   showFilterAtom,
 } from "../store/filters";
-import { loadingState, unreadCountSelector } from "../store/notifications";
+import { loadingState } from "../store/notifications";
 
 interface Props {
   onRefresh: () => void;

@@ -45,6 +45,7 @@ export const listNotificationsSelector = selector({
   key: "listNotifications",
   get: async ({ get }) => {
     const id = get(pollId);
+    console.log("listNotificationsSelector", id);
     const authToken = get(authTokenState);
     if (!authToken) {
       return null;
@@ -109,8 +110,7 @@ export const notificationsSelector = selector<GithubNotification[]>({
   key: "notifications",
   get: ({ get }) => {
     const notifications = get(listNotificationsSelector);
-    if (!notifications) return [];
-    return notifications.data || [];
+    return notifications?.data || [];
   },
 });
 
@@ -125,15 +125,11 @@ export const nextPollAtSelector = selector({
   },
 });
 
-export const unreadCountSelector = selector({
-  key: "unreadCount",
-  get: ({ get }) => get(notificationsSelector).filter((n) => n.unread).length,
-});
-
 export const loadingState = selector({
   key: "loading",
   get: ({ get }) => {
     const state = get(noWait(listNotificationsSelector));
+    console.log(state);
     return state.state === "loading";
   },
 });

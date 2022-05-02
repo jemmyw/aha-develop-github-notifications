@@ -14,7 +14,7 @@ Create a dashboard panel showing your github notifications
 4. Select GitHub Notifications
 5. Configure with your participation options
 
-![CleanShot 2022-05-02 at 12 03 07@2x](https://user-images.githubusercontent.com/8016/166170251-fd8a2ba1-a4a9-40d0-bd2b-38b18648a932.png)
+<img width="278" alt="CleanShot 2022-05-02 at 12 03 07@2x" src="https://user-images.githubusercontent.com/8016/166170334-5ed91605-b6ff-4d19-9ac5-52f434cb05b2.png">
 
 
 ## Working on the extension
